@@ -14,6 +14,7 @@ curl_img () {
 	# Reqimage
 	local code=`curl_reqimage "$fpath"`
 	echo "code: $code"
+	[[ -f "$DB_FILE" ]] || createdb
 	printf -v sqlcmd "insert into map (id, path, name) values (%d, '%q', '%q')" $code "$fpath" "$NAME"
 	sqlite3 -batch "$DB_FILE" "$sqlcmd"
 	# Send resized images

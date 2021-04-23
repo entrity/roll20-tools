@@ -22,3 +22,7 @@ if (($COUNT)); then
 else
 	>&2 echo -e "\033[31mNo request because COUNT is 0\033[0"
 fi
+
+# See also:
+# curl 'https://app.roll20.net/image_library/deletelibraryitem/' \
+#  --data-raw 'appid=$APPID&removetag=true&parent=root&deleteindex=0' \
