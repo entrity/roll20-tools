@@ -1,4 +1,5 @@
 COOKIE_FILE=cookies.txt
+DB_FILE=map.db
 
 CURLARGS=(-s --compressed \
 	-b "$COOKIE_FILE" -c "$COOKIE_FILE" \
@@ -29,4 +30,15 @@ docurl () {
 		>&2 echo "Bad response $HTTP_CODE"
 		exit 1
 	fi
+}
+
+# Create sqlite db for mapping roll20 ids to local file paths
+createdb () {
+	cat <<-EOF | sqlite3 -batch "$DB_FILE"
+		create table map (
+			id integer,
+			path string,
+			name string
+		);
+	EOF
 }
