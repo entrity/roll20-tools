@@ -10,3 +10,5 @@ login () {
 	-d "email=${USER}&password=${PASS}" \
   -v -q
 }
+
+login
