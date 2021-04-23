@@ -19,15 +19,14 @@ login () {
 curl_img () {
 	local fpath=$1
 	local ext=${fpath##*.}
-	local bname=`basename "$fpath"`
 	# Reqimage
 	local code=`curl_reqimage "$fpath"`
 	echo "code: $code"
 	# Send resized images
 	curl_img_for_geom "$fpath" "mini.$ext"  16x16 || exit 5
-	curl_img_for_geom "$fpath" "thumb.$ext" 32x32 || exit 5
-	curl_img_for_geom "$fpath" "med.$ext"   64x64 || exit 5
-	curl_img_for_geom "$fpath" "max.$ext"   256x256 || exit 5
+	curl_img_for_geom "$fpath" "thumb.$ext" 64x64 || exit 5
+	curl_img_for_geom "$fpath" "med.$ext"   256x256 || exit 5
+	curl_img_for_geom "$fpath" "max.$ext"   512x512 || exit 5
 	# Send original image
 	local s3url=`curl_img_to_roll20 "$fpath" "$code"`
 	curl_img_to_aws_s3 "$s3url" "$fpath" # In the browser, the script names this "original.${ext}"
@@ -47,7 +46,7 @@ CURLARGS=(-s --compressed \
 	-H 'TE: Trailers' \
 	-H 'User-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.72 Safari/537.36' \
 	-H 'X-Requested-With: XMLHttpRequest' \
-  -H 'Authority: app.roll20.net' \
+	-H 'Authority: app.roll20.net' \
 	-w '\n%{http_code}'
 )
 docurl () {
@@ -67,11 +66,10 @@ docurl () {
 }
 
 curl_reqimage () {
-	local name=`basename "$fpath"`
 	local size=`stat --printf=%s "$fpath"`
 	local mime=`file --mime-type "$fpath" | cut -d' ' -f2`
 	docurl 'https://app.roll20.net/image_library/reqimage' \
-	-d "name=$name" -d "size=$size" -d "type=$mime"
+	-d "name=$NAME" -d "size=$size" -d "type=$mime"
 }
 
 curl_img_to_roll20 () {
@@ -92,19 +90,19 @@ curl_img_to_aws_s3 () {
 	local mime=`file --mime-type "$path" | cut -d' ' -f2`
 	local curlcmd=(
 		curl "$awss3url"
-	  -X PUT
-	  -H 'Accept-Language: en-US,en;q=0.5'
-	  -H 'Accept: */*'
-	  -H 'Cache-Control: max-age=31104000,public'
-	  -H 'Connection: keep-alive'
-	  -H "Content-Type: ${mime}"
-	  -H 'DNT: 1'
-	  -H 'Origin: https://app.roll20.net'
-	  -H 'Referer: https://app.roll20.net/'
-	  -H 'User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:87.0) Gecko/20100101 Firefox/87.0'
-	  -H 'x-amz-acl: public-read'
-	  -H 'X-Requested-With: XMLHttpRequest'
-	  --data-binary "@$path"
+		-X PUT
+		-H 'Accept-Language: en-US,en;q=0.5'
+		-H 'Accept: */*'
+		-H 'Cache-Control: max-age=31104000,public'
+		-H 'Connection: keep-alive'
+		-H "Content-Type: ${mime}"
+		-H 'DNT: 1'
+		-H 'Origin: https://app.roll20.net'
+		-H 'Referer: https://app.roll20.net/'
+		-H 'User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:87.0) Gecko/20100101 Firefox/87.0'
+		-H 'x-amz-acl: public-read'
+		-H 'X-Requested-With: XMLHttpRequest'
+		--data-binary "@$path"
 	)
 	local res=`"${curlcmd[@]}"`
 	if [[ $res =~ Error ]]; then
@@ -131,4 +129,5 @@ curl_img_for_geom () {
 
 ##################################################
 
+NAME="${2:-`basename "$1"`}"
 curl_img "$1"
