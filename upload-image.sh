@@ -1,3 +1,4 @@
+#!/bin/bash
 # Overview
 # reqimage to get :code
 # for each in mini, thumb, med, max, original:
@@ -13,11 +14,13 @@ curl_img () {
 	# Reqimage
 	local code=`curl_reqimage "$fpath"`
 	echo "code: $code"
+	printf -v sqlcmd "insert into map (id, path, name) values (%d, '%q', '%q')" $code "$fpath" "$NAME"
+	sqlite3 -batch "$DB_FILE" "$sqlcmd"
 	# Send resized images
-	curl_img_for_geom "$fpath" "mini.$ext"  16x16 || exit 5
-	curl_img_for_geom "$fpath" "thumb.$ext" 64x64 || exit 5
-	curl_img_for_geom "$fpath" "med.$ext"   256x256 || exit 5
-	curl_img_for_geom "$fpath" "max.$ext"   512x512 || exit 5
+	curl_img_for_geom "$fpath" "mini.$ext"  64 || exit 5
+	curl_img_for_geom "$fpath" "thumb.$ext" 256 || exit 5
+	curl_img_for_geom "$fpath" "med.$ext"   512 || exit 5
+	curl_img_for_geom "$fpath" "max.$ext"   1024 || exit 5
 	# Send original image
 	local s3url=`curl_img_to_roll20 "$fpath" "$code"`
 	curl_img_to_aws_s3 "$s3url" "$fpath" # In the browser, the script names this "original.${ext}"
@@ -81,14 +84,33 @@ curl_img_to_aws_s3 () {
 curl_img_for_geom () {
 	local path=$1
 	local name=$2
-	local geom=$3
+	local dim0=$3
+	local dimZ=$(( dim0 < SRC_DIM ? dim0 : SRC_DIM ))
+	fail_if_blank $dimZ dimZ
+	local geom="${dimZ}x${dimZ}"
 	convert "$path" -resize "$geom" "$name"
 	local s3url=`curl_img_to_roll20 "$name" "$code"`
 	[[ -z "$s3url" ]] && exit 13
 	curl_img_to_aws_s3 "$s3url" "$name"
 }
 
+fail_if_blank () {
+	if [[ -z $2 ]]; then
+		>&2 echo "FAIL: $1 cannot be blank"
+		exit 2
+	fi
+}
+
 ##################################################
 
-NAME="${2:-`basename "$1"`}" # Name should still end in appropriate file extension
-curl_img "$1"
+SRC=$1
+NAME="${2:-`basename "$SRC"`}" # Name should still end in appropriate file extension
+read WIDTH HEIGHT < <(identify -format "%w"$'\t'"%h" "$SRC")
+fail_if_blank SRC $SRC
+fail_if_blank NAME $NAME
+fail_if_blank WIDTH $WIDTH
+fail_if_blank HEIGHT $HEIGHT
+SRC_DIM=$(( HEIGHT > WIDTH ? HEIGHT : WIDTH )) # Max dimension of input file
+fail_if_blank SRC_DIM $SRC_DIM
+
+curl_img "$SRC"
