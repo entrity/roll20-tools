@@ -1,6 +1,8 @@
 COOKIE_FILE=cookies.txt
 DB_FILE=map.db
 
+[[ -f roll20rc ]] && . roll20rc
+
 CURLARGS=(-s --compressed \
 	-b "$COOKIE_FILE" -c "$COOKIE_FILE" \
 	-H 'Accept-Language: en-US,en;q=0.5' \

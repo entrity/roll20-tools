@@ -1,8 +1,16 @@
+#!/bin/bash
+
+# IMAGE_ID can come from command-line arg, clipboard selection, or stdin
+
 . shared.sh
 
-IMAGE_ID=${1:-`xsel -b -o`}
-FOLDER_ID=${2:--MYy0iEe1Ls8qHYje_45}
-FOLDER_NAME=${3:-cave}
+FOLDER_ID=${1:--MYy0iEe1Ls8qHYje_45}
+FOLDER_NAME=${2:-cave}
+if [[ -t 0 ]]; then
+	IMAGE_ID=${3:-`xsel -b -o`}
+else
+	read IMAGE_ID
+fi
 
 function readdb () {
 	sqlite3 -separator $'\t' -batch "$DB_FILE" "select name, url from map where id = $IMAGE_ID"
