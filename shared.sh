@@ -36,9 +36,10 @@ docurl () {
 createdb () {
 	cat <<-EOF | sqlite3 -batch "$DB_FILE"
 		create table map (
-			id integer,
+			id integer primary key,
 			path string,
-			name string
+			name string,
+			url text
 		);
 	EOF
 }
