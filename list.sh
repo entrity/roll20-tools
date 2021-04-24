@@ -1,6 +1,6 @@
 . shared.sh
 
-GAME=${GAME:-1}
+PAGE=${PAGE:-1}
 
 function request () {
 	[[ -f $DB_FILE ]] || createdb
@@ -9,10 +9,10 @@ function request () {
 		docurl "https://app.roll20.net/image_library/fetchlibraryfolder/$FOLDERID"
 	elif [[ -n $TRUEORPHANS ]]; then
 		# Search for images which aren't in any folders
-		docurl "https://app.roll20.net/image_library/fetchorphanassets/true/$GAME"
+		docurl "https://app.roll20.net/image_library/fetchorphanassets/true/$PAGE"
 	else
 		# Search for all images
-		docurl "https://app.roll20.net/image_library/fetchorphanassets/false/$GAME"
+		docurl "https://app.roll20.net/image_library/fetchorphanassets/false/$PAGE"
 	fi
 }
 

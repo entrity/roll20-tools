@@ -106,6 +106,7 @@ fail_if_blank () {
 
 NAME="${2:-`basename "$1"`}" # Name should still end in appropriate file extension
 SRC=`readlink -f "$1"`
+echo -e "\033[96m$NAME\033[0m"
 read WIDTH HEIGHT < <(identify -format "%w"$'\t'"%h" "$SRC")
 fail_if_blank SRC $SRC
 fail_if_blank NAME $NAME

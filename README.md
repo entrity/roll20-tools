@@ -13,7 +13,9 @@ Roll20 is a virtual tabletop for running games like Dungeons & Dragons.
 # Load urls into database (and print to stdout)
 ./list.sh
 # Copy select images to a Roll20 folder
-sqlite3 map.db 'select id from map where path like "dir2/%"' | ./copy_to_library.sh $FOLDERID $FOLDERNAME
+sqlite3 map.db 'select id from map where path like "dir2/%"' | while read ID; do
+	KEYWORDS=mykeyword ./copy_to_library.sh $FOLDERID $FOLDERNAME $ID
+done
 ```
 
 ## Misc

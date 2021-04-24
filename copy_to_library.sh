@@ -15,7 +15,7 @@ fi
 function readdb () {
 	sqlite3 -separator $'\t' -batch "$DB_FILE" "select name, url from map where id = $IMAGE_ID"
 }
-read -r IMAGE_NAME IMAGE_URL < <(readdb)
+IFS=$'\t' read -r IMAGE_NAME IMAGE_URL < <(readdb)
 
 failifblank () {
 	if [[ -z $2 ]]; then
@@ -36,7 +36,7 @@ docurl 'https://app.roll20.net/image_library/copy_asset_to_library/' \
 -d 'type=item' \
 -d "id=$IMAGE_ID" -d "name=$IMAGE_NAME" -d "url=$IMAGE_URL" \
 -d "folderid=$FOLDER_ID" -d "foldername=$FOLDER_NAME" \
--d "keywords="
+-d "keywords=$KEYWORDS"
 
 # E.g.
 # type=item

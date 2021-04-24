@@ -45,3 +45,4 @@ createdb () {
 		);
 	EOF
 }
+[[ -f $DB_FILE ]] || createdb
