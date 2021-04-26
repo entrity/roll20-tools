@@ -1,29 +1,33 @@
 . shared.sh
 
-PAGE=${PAGE:-1}
+[[ -n $TRUEORPHANS ]] && TRUEORPHANS=true
 
 function request () {
-	[[ -f $DB_FILE ]] || createdb
-	if (($#)); then
-		FOLDERID=$1
-		docurl "https://app.roll20.net/image_library/fetchlibraryfolder/$FOLDERID"
-	elif [[ -n $TRUEORPHANS ]]; then
-		# Search for images which aren't in any folders
-		docurl "https://app.roll20.net/image_library/fetchorphanassets/true/$PAGE"
+	if [[ -n $FOLDER_ID ]]; then
+		docurl "https://app.roll20.net/image_library/fetchlibraryfolder/$FOLDER_ID" # Param is folder id
 	else
-		# Search for all images
-		docurl "https://app.roll20.net/image_library/fetchorphanassets/false/$PAGE"
+		docurl "https://app.roll20.net/image_library/fetchorphanassets/${TRUEORPHANS:-false}/$1" # Param is page number
 	fi
 }
 
 function update_db () {
 	jq -r -c '.[] | [.id, .name, .image_url]' | while read VALUES; do
-		sqlite3 "$DB_FILE" "INSERT OR REPLACE INTO map(id, name, url) VALUES(${VALUES:2:-1})"
+		SQL="INSERT OR REPLACE INTO map(id, name, url) VALUES(${VALUES:2:-1})"
+		if ! sqlite3 -batch "$DB_FILE" "$SQL"; then
+			>&2 echo FAILED $CMD
+			exit 45
+		fi
 	done
 }
 
 function main () {
-	request | tee >(update_db)
+	local PAGE=1
+	while ((1)); do
+		COUNT=`request $PAGE | tee /dev/fd/3 >(update_db) | jq length`
+		>&2 echo "Got COUNT $COUNT PAGE $PAGE"
+		if [[ -z $COUNT ]] || [[ $COUNT -lt 50 ]]; then break; fi
+		local PAGE=$(( 1 + PAGE ))
+	done 3>&1 | jq -s -c flatten
 }
 
 if [[ -t 1 ]]; then

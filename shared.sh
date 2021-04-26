@@ -46,3 +46,10 @@ createdb () {
 	EOF
 }
 [[ -f $DB_FILE ]] || createdb
+
+failifblank () {
+	if [[ -z $2 ]]; then
+		>&2 echo "FAIL $1 cannot be blank"
+		exit 2
+	fi
+}
