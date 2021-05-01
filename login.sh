@@ -10,8 +10,10 @@ login () {
 	local curlcmd=(
 		curl "https://app.roll20.net/sessions/create"
 		"${CURLARGS[@]}"
-		-d "email=${USER}&password=${PASS}"
-		-w "%{http_code}\t%{redirect_url}\n" -s -q
+		--data-urlencode "email=${USER}" \
+		--data-urlencode "password=${PASS}"
+		-w "%{http_code}\t%{redirect_url}\n"
+		-s -q
 	)
 	read STATUS REDIRECT < <("${curlcmd[@]}")
 	if [[ $REDIRECT =~ /editor/$ ]]; then
