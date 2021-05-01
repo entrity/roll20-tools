@@ -12,7 +12,7 @@ function request () {
 
 function update_db () {
 	jq -r -c '.[] | [.id, .name, .image_url]' | while read VALUES; do
-		SQL="INSERT OR REPLACE INTO map(id, name, url) VALUES(${VALUES:2:-1})"
+		SQL="INSERT OR REPLACE INTO map(id, name, url) VALUES(${VALUES:1:-1})"
 		if ! sqlite3 -batch "$DB_FILE" "$SQL"; then
 			>&2 echo FAILED $CMD
 			exit 45

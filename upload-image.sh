@@ -12,10 +12,9 @@ curl_img () {
 	local fpath=$1
 	local ext=${fpath##*.}
 	# Reqimage
-	local code=`curl_reqimage "$fpath"`
-	echo "code: $code"
-	[[ -f "$DB_FILE" ]] || createdb
-	printf -v sqlcmd "INSERT OR REPLACE INTO map(id, path, name) VALUES(%d, '%q', '%q')" $code "$fpath" "$NAME"
+	IMAGE_ID=`curl_reqimage "$fpath"`
+	echo "code: $IMAGE_ID"
+	printf -v sqlcmd "INSERT INTO map(id, path, name) VALUES(%d, '%q', '%q')" $IMAGE_ID "$fpath" "$NAME"
 	sqlite3 -batch "$DB_FILE" "$sqlcmd"
 	# Send resized images
 	curl_img_for_geom "$fpath" "mini.$ext"  64 || exit 5
@@ -23,7 +22,7 @@ curl_img () {
 	curl_img_for_geom "$fpath" "med.$ext"   512 || exit 5
 	curl_img_for_geom "$fpath" "max.$ext"   1024 || exit 5
 	# Send original image
-	local s3url=`curl_img_to_roll20 "$fpath" "$code"`
+	local s3url=`curl_img_to_roll20 "$fpath" "$IMAGE_ID"`
 	curl_img_to_aws_s3 "$s3url" "$fpath" # In the browser, the script names this "original.${ext}"
 }
 
@@ -38,12 +37,12 @@ curl_reqimage () {
 }
 
 curl_img_to_roll20 () {
+	fail_if_blank IMAGE_ID $IMAGE_ID
 	local path=$1
-	local code=$2
 	local size=`stat --printf=%s "$path"`
 	local mime=`file --mime-type "$path" | cut -d' ' -f2`
 	local name=`basename "$path"`
-	docurl "https://app.roll20.net/image_library/s3putsign/$code" \
+	docurl "https://app.roll20.net/image_library/s3putsign/$IMAGE_ID" \
 	-d "name=$name" -d "size=$size" -d "type=$mime" \
 	| tee /dev/stderr \
 	| jq -c -r '[.base, .additional] | join("")'
@@ -90,7 +89,7 @@ curl_img_for_geom () {
 	fail_if_blank $dimZ dimZ
 	local geom="${dimZ}x${dimZ}"
 	convert "$path" -resize "$geom" "$name"
-	local s3url=`curl_img_to_roll20 "$name" "$code"`
+	local s3url=`curl_img_to_roll20 "$name"`
 	[[ -z "$s3url" ]] && exit 13
 	curl_img_to_aws_s3 "$s3url" "$name"
 }
@@ -104,7 +103,23 @@ fail_if_blank () {
 
 ##################################################
 
-NAME="${2:-`basename "$1"`}" # Name should still end in appropriate file extension
+while getopts "n:f:i:" opt; do
+  case ${opt} in
+    n )  NAME=$OPTARG
+      ;;
+    f )  FOLDER_NAME=$OPTARG
+			;;
+    i )  FOLDER_ID=$OPTARG
+			;;
+    \? ) echo "Usage: cmd [-i folderid] [-f foldername] [-n name] <file>"
+      ;;
+    : )  echo "Invalid option: $OPTARG requires an argument" 1>&2
+      ;;
+  esac
+done
+shift $((OPTIND -1))
+
+[[ -n $NAME ]] || NAME=`basename "$1"` # Name should still end in appropriate file extension
 SRC=`readlink -f "$1"`
 echo -e "\033[96m$NAME\033[0m"
 read WIDTH HEIGHT < <(identify -format "%w"$'\t'"%h" "$SRC")
@@ -116,3 +131,13 @@ SRC_DIM=$(( HEIGHT > WIDTH ? HEIGHT : WIDTH )) # Max dimension of input file
 fail_if_blank SRC_DIM $SRC_DIM
 
 curl_img "$SRC"
+
+if [[ -n $FOLDER_NAME ]] && [[ -n $FOLDER_ID ]]; then
+	if TRUEORPHANS=1 >/dev/null ./list.sh; then
+		echo List OK
+		./copy_to_library.sh $FOLDER_ID "$FOLDER_NAME" $IMAGE_ID
+	else
+		>&2 echo FAIL list
+		exit 56
+	fi
+fi

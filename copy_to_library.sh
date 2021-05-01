@@ -6,25 +6,27 @@
 
 FOLDER_ID=${1:--MYy0iEe1Ls8qHYje_45}
 FOLDER_NAME=${2:-cave}
-if [[ -t 0 ]]; then
-	IMAGE_ID=${3:-`xsel -b -o`}
-else
-	read IMAGE_ID
+IMAGE_ID=${3}
+if [[ -z $IMAGE_ID ]]; then
+	if ! [[ -t 0 ]]; then
+		read IMAGE_ID
+	elif [[ $SHLVL -le 2 ]]; then
+		IMAGE_ID=${3:-`xsel -b -o`}
+	fi
 fi
+failifblank IMAGE_ID $IMAGE_ID
+>&2 echo -ne "IMAGE_ID \033[96m$IMAGE_ID\033[0m"
+>&2 echo -ne " FOLDER_NAME \033[96m$FOLDER_NAME\033[0m"
+>&2 echo -ne " FOLDER_ID \033[96m$FOLDER_ID\033[0m"
+>&2 echo
 
 function readdb () {
+>&2 lsof "$DB_FILE"
+>&2 sqlite3 -separator $'\t' -batch "$DB_FILE" "select name, url from map where id = $IMAGE_ID"
 	sqlite3 -separator $'\t' -batch "$DB_FILE" "select name, url from map where id = $IMAGE_ID"
 }
 IFS=$'\t' read -r IMAGE_NAME IMAGE_URL < <(readdb)
 
-failifblank () {
-	if [[ -z $2 ]]; then
-		>&2 echo "FAIL $1 cannot be blank"
-		exit 2
-	fi
-}
-
-failifblank IMAGE_ID $IMAGE_ID
 failifblank IMAGE_NAME $IMAGE_NAME
 failifblank IMAGE_URL $IMAGE_URL
 failifblank FOLDER_ID $FOLDER_ID
