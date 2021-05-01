@@ -25,3 +25,8 @@ done
 ./quota.sh # Show how much space you have used and can use
 ./delete.sh # Delete an image file
 ```
+
+## Images
+aHR0cHM6Ly9kcml2ZS5nb29nbGUuY29tL2RyaXZlL3UvMC9mb2xkZXJzLzBCLUNxeWZLcDVrWmtlVGd5VkZnMmVVVTJjVzg=
+aHR0cHM6Ly93d3cuZHJvcGJveC5jb20vc2gvZW8xM3RkdXh0eGhsY2trL0FBQzd6WUYzdHU4cWJyYlg4WkpmaXpRaWE=
+aHR0cDovL3B5bWFwcGVyLmNvbS90aWxlLWRvd25sb2Fkcy8=
