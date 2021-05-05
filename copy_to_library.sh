@@ -36,8 +36,11 @@ echo -e "\033[96m$IMAGE_NAME\033[0m..."
 
 docurl 'https://app.roll20.net/image_library/copy_asset_to_library/' \
 -d 'type=item' \
--d "id=$IMAGE_ID" -d "name=$IMAGE_NAME" -d "url=$IMAGE_URL" \
--d "folderid=$FOLDER_ID" -d "foldername=$FOLDER_NAME" \
+-d "id=$IMAGE_ID" \
+--data-urlencode "name=$IMAGE_NAME" \
+--data-urlencode "url=$IMAGE_URL" \
+--data-urlencode "folderid=$FOLDER_ID" \
+--data-urlencode "foldername=$FOLDER_NAME" \
 -d "keywords=$KEYWORDS"
 
 # E.g.

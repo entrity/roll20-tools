@@ -1,5 +1,6 @@
 . shared.sh
 
+FOLDER_ID=${FOLDER_ID:-$1}
 [[ -n $TRUEORPHANS ]] && TRUEORPHANS=true
 
 function request () {
