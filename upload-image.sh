@@ -127,7 +127,9 @@ done
 shift $((OPTIND -1))
 
 function run () {
-	[[ -n $NAME ]] || NAME=`basename "$1"` # Name should still end in appropriate file extension
+	if [[ -n $NAME ]] || (($RECURSIVE)); then
+		NAME=`basename "$1"` # Name should still end in appropriate file extension
+	fi
 	NAME_EXT=`get_ext "$NAME"`
 	FILE_EXT=`get_ext "$1"`
 	[[ $NAME_EXT == $FILE_EXT ]] || NAME="$NAME.$NAME_EXT"
