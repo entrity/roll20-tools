@@ -3,6 +3,12 @@ These are command-line tools for interacting with a roll20.net account.
 
 Roll20 is a virtual tabletop for running games like Dungeons & Dragons.
 
+## Example usage
+```bash
+./folders.sh # View folders. Pick and id
+./upload_image.sh -i "$FOLDER_ID" -r "$SRC_DIR"
+```
+
 ## Upload files, add to a folder
 ```bash
 # Upload files

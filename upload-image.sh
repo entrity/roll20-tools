@@ -8,9 +8,13 @@
 # Load shared vars and functions
 . shared.sh
 
+get_ext () {
+	echo -n "${1##*.}"
+}
+
 curl_img () {
 	local fpath=$1
-	local ext=${fpath##*.}
+	local ext=`get_ext "$fpath"`
 	# Reqimage
 	IMAGE_ID=`curl_reqimage "$fpath"`
 	echo "code: $IMAGE_ID"
@@ -54,6 +58,7 @@ curl_img_to_aws_s3 () {
 	local mime=`file --mime-type "$path" | cut -d' ' -f2`
 	local curlcmd=(
 		curl "$awss3url"
+		-s
 		-X PUT
 		-H 'Accept-Language: en-US,en;q=0.5'
 		-H 'Accept: */*'
@@ -103,7 +108,7 @@ fail_if_blank () {
 
 ##################################################
 
-while getopts "n:f:i:" opt; do
+while getopts "n:f:i:r" opt; do
   case ${opt} in
     n )  NAME=$OPTARG
       ;;
@@ -111,7 +116,9 @@ while getopts "n:f:i:" opt; do
 			;;
     i )  FOLDER_ID=$OPTARG
 			;;
-    \? ) echo "Usage: cmd [-i folderid] [-f foldername] [-n name] <file>"
+		r )  RECURSIVE=1
+			;;
+    \? ) echo "Usage: cmd [-r] [-i folderid] [-f foldername] [-n name] <file>"
       ;;
     : )  echo "Invalid option: $OPTARG requires an argument" 1>&2
       ;;
@@ -119,25 +126,42 @@ while getopts "n:f:i:" opt; do
 done
 shift $((OPTIND -1))
 
-[[ -n $NAME ]] || NAME=`basename "$1"` # Name should still end in appropriate file extension
-SRC=`readlink -f "$1"`
-echo -e "\033[96m$NAME\033[0m"
-read WIDTH HEIGHT < <(identify -format "%w"$'\t'"%h" "$SRC")
-fail_if_blank SRC $SRC
-fail_if_blank NAME $NAME
-fail_if_blank WIDTH $WIDTH
-fail_if_blank HEIGHT $HEIGHT
-SRC_DIM=$(( HEIGHT > WIDTH ? HEIGHT : WIDTH )) # Max dimension of input file
-fail_if_blank SRC_DIM $SRC_DIM
+function run () {
+	[[ -n $NAME ]] || NAME=`basename "$1"` # Name should still end in appropriate file extension
+	NAME_EXT=`get_ext "$NAME"`
+	FILE_EXT=`get_ext "$1"`
+	[[ $NAME_EXT == $FILE_EXT ]] || NAME="$NAME.$NAME_EXT"
+	SRC=`readlink -f "$1"`
+	echo -e "\033[96m$NAME\033[0m"
+	read WIDTH HEIGHT < <(identify -format "%w"$'\t'"%h" "$SRC")
+	fail_if_blank SRC $SRC
+	fail_if_blank NAME $NAME
+	fail_if_blank WIDTH $WIDTH
+	fail_if_blank HEIGHT $HEIGHT
+	SRC_DIM=$(( HEIGHT > WIDTH ? HEIGHT : WIDTH )) # Max dimension of input file
+	fail_if_blank SRC_DIM $SRC_DIM
 
-curl_img "$SRC"
+	curl_img "$SRC"
 
-if [[ -n $FOLDER_NAME ]] && [[ -n $FOLDER_ID ]]; then
-	if TRUEORPHANS=1 >/dev/null ./list.sh; then
-		echo List OK
-		./copy_to_library.sh $FOLDER_ID "$FOLDER_NAME" $IMAGE_ID
-	else
-		>&2 echo FAIL list
-		exit 56
+	if [[ -n $FOLDER_ID ]]; then
+		if TRUEORPHANS=1 >/dev/null ./list.sh; then
+			echo List OK
+			./copy_to_library.sh $FOLDER_ID "$FOLDER_NAME" $IMAGE_ID
+		else
+			>&2 echo FAIL list
+			exit 56
+		fi
 	fi
+}
+
+if (($RECURSIVE)); then
+	>&2 echo -e "\033[36mRecursive $1...\033[0m"
+	find "$1" ! -type d | while read f; do
+		MIME=`mimetype --brief --dereference "$f"`
+		if [[ $MIME =~ ^image/ ]]; then
+			run "$f"
+		fi
+	done
+else
+	run "$1"
 fi
